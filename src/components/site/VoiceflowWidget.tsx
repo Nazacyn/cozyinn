@@ -25,14 +25,14 @@ export function VoiceflowWidget() {
       document.head.appendChild(stripeScript);
     }
 
-    // Prevent duplicate VF widget loads
+    // Shield against duplicate widget injections during routing switches
     if (document.getElementById("voiceflow-widget-core")) {
       return;
     }
 
     (async () => {
       let config = {
-        voiceflowId: "6a1841e4ca2e1d53feb8c42b",
+        voiceflowId: "6a10ad0b5e0209f1acec04f6",
         stripePublishableKey: "",
       };
 
@@ -45,7 +45,7 @@ export function VoiceflowWidget() {
           config.stripePublishableKey = fetched.stripePublishableKey;
         }
       } catch (e) {
-        console.log("[Voiceflow] Using fallback configuration.");
+        console.log("[Voiceflow] Cloud configuration lookup skipped, using default fallbacks.");
       }
 
       if (cancelled) return;
@@ -78,73 +78,46 @@ export function VoiceflowWidget() {
               }
 
               const stripe = window.Stripe(stripeKey);
+
               const clientSecret = trace.payload?.client_secret;
               if (!clientSecret) {
-                throw new Error("Missing PaymentIntent client_secret");
+                throw new Error("Missing Checkout Session client_secret");
               }
 
-              const elements = stripe.elements({ clientSecret });
-
+              // Create container
               const container = document.createElement("div");
-              container.className = "vf-stripe-payment p-4 rounded-xl bg-white shadow border border-gray-100 my-2";
-              container.style.color = "#000000";
+              container.className = "vf-stripe-checkout p-2 rounded-xl bg-white shadow-sm border border-gray-100 my-2 w-full max-w-sm mx-auto";
 
-              const mount = document.createElement("div");
-              mount.id = `stripe-payment-element-${Date.now()}`;
-              container.appendChild(mount);
-
-              const payBtn = document.createElement("button");
-              payBtn.textContent = "Loading...";
-              payBtn.disabled = true; // FIX: disabled until Stripe element is ready
-              payBtn.className = "mt-3 w-full rounded-full bg-[#0070f3] text-white px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition";
-              container.appendChild(payBtn);
-
+              const checkoutMount = document.createElement("div");
+              const checkoutId = `stripe-checkout-instance-${Date.now()}`;
+              checkoutMount.id = checkoutId;
+              container.appendChild(checkoutMount);
               element.appendChild(container);
 
-              const paymentElement = elements.create("payment");
-              paymentElement.mount(mount);
-
-              // FIX: only enable the button once Stripe confirms the element is ready
-              paymentElement.on("ready", () => {
-                payBtn.disabled = false;
-                payBtn.textContent = "Pay now";
-              });
-
-              payBtn.addEventListener("click", async (e) => {
-                e.preventDefault();
-                payBtn.disabled = true;
-                payBtn.textContent = "Processing…";
-                try {
-                  const { error } = await stripe.confirmPayment({
-                    elements,
-                    redirect: "if_required",
-                  });
+              // Stripe Embedded Checkout — requires Checkout Session client_secret from n8n
+              const checkout = await stripe.initEmbeddedCheckout({
+                clientSecret,
+                onComplete: () => {
                   window.voiceflow.chat.interact({
                     type: "payment_completed",
-                    payload: {
-                      payment_status: error ? "failed" : "success",
-                    },
+                    payload: { payment_status: "success" },
                   });
-                } catch (err) {
-                  console.error(err);
-                  window.voiceflow.chat.interact({
-                    type: "payment_completed",
-                    payload: {
-                      payment_status: "failed",
-                    },
-                  });
-                } finally {
-                  payBtn.disabled = false;
-                  payBtn.textContent = "Pay now";
-                }
+                },
               });
+
+              checkout.mount(`#${checkoutId}`);
+
             } catch (err) {
               console.error("StripePaymentExtension error", err);
+              window.voiceflow.chat.interact({
+                type: "payment_completed",
+                payload: { payment_status: "failed" },
+              });
             }
           },
         };
 
-        // FIX: stable userID persisted in localStorage so session survives re-renders
+        // Stable userID persisted in localStorage so session survives re-renders
         let userId = localStorage.getItem("vf_user_id");
         if (!userId) {
           userId = "cozyinn-user-" + Date.now().toString();
@@ -162,7 +135,6 @@ export function VoiceflowWidget() {
         });
       };
 
-      // Moved outside the onload block so the script actually injects into the document body
       document.body.appendChild(script);
     })();
 
