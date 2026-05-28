@@ -14,7 +14,7 @@ export function VoiceflowWidget() {
     if (!document.getElementById("stripe-js-script")) {
       const stripeScript = document.createElement("script");
       stripeScript.id = "stripe-js-script";
-      stripeScript.src = "https://stripe.com";
+      stripeScript.src = "https://js.stripe.com/v3/";
       stripeScript.async = true;
       document.head.appendChild(stripeScript);
     }
@@ -47,8 +47,8 @@ export function VoiceflowWidget() {
 
       const script = document.createElement("script");
       script.id = "voiceflow-widget-core";
-      script.src = "https://voiceflow.com";
-      script.type = "text/javascript";
+      script.src = "https://cdn.voiceflow.com/widget-next/bundle.mjs";
+      script.type = "module";
       script.async = true;
       
       script.onload = () => {
