@@ -2,27 +2,34 @@ import { useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getPublicConfig } from "@/lib/public-config.functions";
 
-/**
- * Robust Client-Safe Voiceflow loader with Stripe Integration
- * Hardcoded fallbacks included to guarantee display even if server keys fail.
- */
 export function VoiceflowWidget() {
   const fetchConfig = useServerFn(getPublicConfig);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     
-    // @ts-ignore
-    if (window.__voiceflowLoaded) return;
     let cancelled = false;
 
-    // 1. Force inject Stripe.js library to prevent window.Stripe is not a function errors
+    // 1. Safely inject Stripe.js library
     if (!document.getElementById("stripe-js-script")) {
       const stripeScript = document.createElement("script");
       stripeScript.id = "stripe-js-script";
       stripeScript.src = "https://stripe.com";
       stripeScript.async = true;
       document.head.appendChild(stripeScript);
+    }
+
+    // 2. Prevent creating duplicate Voiceflow scripts on React re-renders
+    if (document.getElementById("voiceflow-widget-core")) {
+      // If script exists but widget disappeared, force a reload trigger
+      // @ts-ignore
+      if (window.voiceflow?.chat?.load && !document.querySelector('.vpw-widget-launcher')) {
+        try {
+          // @ts-ignore
+          window.voiceflow.chat.open();
+        } catch(e) {}
+      }
+      return;
     }
 
     (async () => {
@@ -33,16 +40,13 @@ export function VoiceflowWidget() {
         if (fetched?.voiceflowId) config.voiceflowId = fetched.voiceflowId;
         if (fetched?.stripePublishableKey) config.stripePublishableKey = fetched.stripePublishableKey;
       } catch (e) {
-        console.log("[Voiceflow] Failed server fetch config, falling back to local defaults.");
+        console.log("[Voiceflow] Cloud secrets read skipped, running fallback credentials.");
       }
 
       if (cancelled) return;
 
-      // @ts-ignore
-      window.__voiceflowLoaded = true;
-      
       const script = document.createElement("script");
-      // FIXED: Pointed to the actual bundle layout location path
+      script.id = "voiceflow-widget-core";
       script.src = "https://voiceflow.com";
       script.type = "text/javascript";
       script.async = true;
@@ -57,7 +61,6 @@ export function VoiceflowWidget() {
           match: ({ trace }: any) => trace.type === "StripePayment",
           render: async ({ trace, element }: any) => {
             try {
-              // Fallback to a test key if cloud secret is missing
               const stripeKey = config.stripePublishableKey || "pk_test_51P3exampleYourKeyHere";
               
               // @ts-ignore
@@ -117,7 +120,7 @@ export function VoiceflowWidget() {
           },
         };
 
-        // @ts-ignore - FIXED URLs pointing to legitimate general runtime backends
+        // @ts-ignore
         window.voiceflow.chat.load({
           verify: { projectID: config.voiceflowId },
           url: "https://general-runtime.voiceflow.com",
