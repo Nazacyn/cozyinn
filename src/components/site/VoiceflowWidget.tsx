@@ -94,7 +94,8 @@ export function VoiceflowWidget() {
               container.appendChild(mount);
 
               const payBtn = document.createElement("button");
-              payBtn.textContent = "Pay now";
+              payBtn.textContent = "Loading...";
+              payBtn.disabled = true; // FIX: disabled until Stripe element is ready
               payBtn.className = "mt-3 w-full rounded-full bg-[#0070f3] text-white px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition";
               container.appendChild(payBtn);
 
@@ -102,6 +103,12 @@ export function VoiceflowWidget() {
 
               const paymentElement = elements.create("payment");
               paymentElement.mount(mount);
+
+              // FIX: only enable the button once Stripe confirms the element is ready
+              paymentElement.on("ready", () => {
+                payBtn.disabled = false;
+                payBtn.textContent = "Pay now";
+              });
 
               payBtn.addEventListener("click", async (e) => {
                 e.preventDefault();
@@ -137,14 +144,25 @@ export function VoiceflowWidget() {
           },
         };
 
+        // FIX: stable userID persisted in localStorage so session survives re-renders
+        let userId = localStorage.getItem("vf_user_id");
+        if (!userId) {
+          userId = "cozyinn-user-" + Date.now().toString();
+          localStorage.setItem("vf_user_id", userId);
+        }
+
         window.voiceflow.chat.load({
           verify: { projectID: config.voiceflowId },
           config: { versionID: "production" },
-          assistant: { extensions: [StripePaymentExtension] }
+          user: {
+            name: "Guest",
+            userID: userId,
+          },
+          assistant: { extensions: [StripePaymentExtension] },
         });
       };
 
-      // FIXED: Moved outside the onload block so the script actually injects into the web page document body!
+      // Moved outside the onload block so the script actually injects into the document body
       document.body.appendChild(script);
     })();
 
