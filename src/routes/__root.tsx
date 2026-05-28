@@ -166,7 +166,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
         <ScrollRestoration />
         <Scripts />
-
+        {/* TEMP VOICEFLOW INLINE TEST
         <script
           type="text/javascript"
           dangerouslySetInnerHTML={{
@@ -194,7 +194,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
               })(document, 'script');
             `,
           }}
-        />
+        /> */}
       </body>
     </html>
   );
