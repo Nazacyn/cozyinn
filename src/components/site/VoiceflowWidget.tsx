@@ -197,26 +197,17 @@ export function VoiceflowWidget() {
           },
         };
 
-        window.voiceflow.chat.load({
-          verify: {
-            projectID: config.voiceflowId,
+          window.voiceflow.chat.load({
+          verify: { 
+            projectID: config.voiceflowId 
           },
-
-          versionID: "production",
-
-          url: "https://general-runtime.voiceflow.com",
-
-          voice: {
-            url: "https://runtime-api.voiceflow.com",
+          config: {
+            versionID: "production"
           },
-
-          assistant: {
-            extensions: [
-              StripePaymentExtension,
-            ],
-          },
+          assistant: { 
+            extensions: [StripePaymentExtension] 
+          }
         });
-      };
 
       document.body.appendChild(script);
     })();
