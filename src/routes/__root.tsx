@@ -72,14 +72,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Cozy Inn" },
+      { name: "description", content: "CozyInn Booking Hub is a modern, 1-page shortlet booking website for premium rentals." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Cozy Inn" },
+      { property: "og:description", content: "CozyInn Booking Hub is a modern, 1-page shortlet booking website for premium rentals." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Cozy Inn" },
+      { name: "twitter:description", content: "CozyInn Booking Hub is a modern, 1-page shortlet booking website for premium rentals." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3025d99f-9052-4f16-8414-d85cac2ca252/id-preview-9f61321b--09f96635-4262-4445-a8fe-e8ee7ae99840.lovable.app-1779942206893.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3025d99f-9052-4f16-8414-d85cac2ca252/id-preview-9f61321b--09f96635-4262-4445-a8fe-e8ee7ae99840.lovable.app-1779942206893.png" },
     ],
     links: [
       {
