@@ -1,27 +1,42 @@
 import { useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { getPublicConfig } from "@/lib/public-config.functions";
 
 /**
  * Voiceflow chat widget loader with a custom StripePaymentExtension.
  *
- * NOTE: Vite only exposes env vars prefixed with VITE_ to the client bundle.
- * The keys below (`VOICEFLOW_ID`, `STRIPE_SECRET_KEY`) are read literally as
- * requested; if they are undefined at runtime, expose them as
- * `VITE_VOICEFLOW_ID` / `VITE_STRIPE_PUBLISHABLE_KEY` instead. The publishable
- * Stripe key is the safe one to ship to the browser — never the secret key.
+ * Secrets `VOICEFLOW_ID` and `STRIPE_PUBLISHABLE_KEY` are stored as Lovable
+ * Cloud secrets (no VITE_ prefix). They are read on the server via the
+ * `getPublicConfig` server function and delivered to the browser at runtime.
  */
 export function VoiceflowWidget() {
+  const fetchConfig = useServerFn(getPublicConfig);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     // @ts-ignore
     if (window.__voiceflowLoaded) return;
-    // @ts-ignore
-    window.__voiceflowLoaded = true;
 
-    const script = document.createElement("script");
-    script.src = "https://voiceflow.com";
-    script.type = "text/javascript";
-    script.async = true;
-    script.onload = () => {
+    let cancelled = false;
+
+    (async () => {
+      const config = await fetchConfig();
+      if (cancelled) return;
+      if (!config?.voiceflowId) {
+        console.warn(
+          "[VoiceflowWidget] VOICEFLOW_ID is not set in Lovable Cloud secrets.",
+        );
+        return;
+      }
+
+      // @ts-ignore
+      window.__voiceflowLoaded = true;
+
+      const script = document.createElement("script");
+      script.src = "https://voiceflow.com";
+      script.type = "text/javascript";
+      script.async = true;
+      script.onload = () => {
       // @ts-ignore
       if (!window.voiceflow?.chat) return;
 
@@ -32,8 +47,13 @@ export function VoiceflowWidget() {
         match: ({ trace }: any) => trace.type === "StripePayment",
         render: async ({ trace, element }: any) => {
           try {
+            if (!config.stripePublishableKey) {
+              throw new Error(
+                "STRIPE_PUBLISHABLE_KEY is not set in Lovable Cloud secrets.",
+              );
+            }
             // @ts-ignore
-            const stripe = window.Stripe(import.meta.env.STRIPE_SECRET_KEY);
+            const stripe = window.Stripe(config.stripePublishableKey);
             const { client_secret: clientSecret } = trace.payload || {};
             const elements = stripe.elements({ clientSecret });
 
@@ -87,19 +107,25 @@ export function VoiceflowWidget() {
         },
       };
 
-      // @ts-ignore
-      window.voiceflow.chat.load({
-        verify: { projectID: import.meta.env.VOICEFLOW_ID },
-        url: "https://voiceflow.com",
-        versionID: "production",
-        voice: { url: "https://voiceflow.com" },
-        assistant: { extensions: [StripePaymentExtension] },
-      });
-    };
+        // @ts-ignore
+        window.voiceflow.chat.load({
+          verify: { projectID: config.voiceflowId },
+          url: "https://voiceflow.com",
+          versionID: "production",
+          voice: { url: "https://voiceflow.com" },
+          assistant: { extensions: [StripePaymentExtension] },
+        });
+      };
 
-    const slot = document.getElementById("chat-widget-slot") || document.body;
-    slot.appendChild(script);
-  }, []);
+      const slot =
+        document.getElementById("chat-widget-slot") || document.body;
+      slot.appendChild(script);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchConfig]);
 
   return null;
 }
