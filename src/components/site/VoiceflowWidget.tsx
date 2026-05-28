@@ -105,7 +105,7 @@ export function VoiceflowWidget() {
                 },
               });
 
-              checkout.mount(`#${checkoutId}`);
+              checkout.mount(checkoutMount);
 
             } catch (err) {
               console.error("StripePaymentExtension error", err);
