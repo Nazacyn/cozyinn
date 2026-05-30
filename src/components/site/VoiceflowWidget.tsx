@@ -32,7 +32,7 @@ export function VoiceflowWidget() {
 
     (async () => {
       let config = {
-        voiceflowId: "6a197df3ef75b946eb81c381",
+        voiceflowId: "6a1b34fb7b492825fac2c932",
         stripePublishableKey: "",
       };
 
