@@ -7,12 +7,16 @@ export const checkPaymentStatus = createServerFn({ method: "POST" })
       return { status: "not_found" };
     }
 
-    const res = await fetch(process.env.N8N_CHECK_PAYMENT_URL!, {
+    const url = process.env.N8N_CHECK_PAYMENT_URL;
+    const key = process.env.N8N_CHECK_PAYMENT_KEY;
+    if (!url || !key) {
+      console.error("Missing N8N_CHECK_PAYMENT_URL or N8N_CHECK_PAYMENT_KEY");
+      return { status: "pending" };
+    }
+    
+    const res = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Api-Key": process.env.N8N_CHECK_PAYMENT_KEY!,
-      },
+      headers: { "Content-Type": "application/json", "X-Api-Key": key },
       body: JSON.stringify({ checkout_session_id: data.checkout_session_id }),
     });
 
